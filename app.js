@@ -1,7 +1,7 @@
 const STORAGE_KEY = "couple-food-realtime-v2";
 const DEVICE_KEY = "couple-food-device-id";
 const ROOM_CODE_PATTERN = /^[A-Za-z0-9_-]+$/;
-const categories = ["全部", "中餐", "日料", "韩餐", "西餐", "火锅", "小吃", "甜品", "饮品"];
+const categories = ["全部", "中餐", "川湘菜", "粤菜", "火锅", "烧烤", "日料", "韩餐", "西餐", "东南亚", "小吃", "甜品", "饮品", "早餐", "夜宵"];
 const tasteOptions = ["清香", "微辣", "中辣", "爆辣", "麻辣"];
 const drinkOptions = ["热", "冷"];
 const drinkKeywords = ["饮品", "饮料", "drink", "drinks", "beverage", "tea", "coffee", "奶茶", "咖啡"];
@@ -9,20 +9,77 @@ const drinkKeywords = ["饮品", "饮料", "drink", "drinks", "beverage", "tea",
 const starterDishes = [
   { id: "beef-noodle", name: "牛肉面", category: "中餐", price: 32, emoji: "🍜" },
   { id: "claypot-rice", name: "煲仔饭", category: "中餐", price: 38, emoji: "🍚" },
+  { id: "congee", name: "皮蛋瘦肉粥", category: "中餐", price: 24, emoji: "🥣" },
+  { id: "fried-rice", name: "扬州炒饭", category: "中餐", price: 28, emoji: "🍛" },
+  { id: "tomato-egg-noodle", name: "番茄鸡蛋面", category: "中餐", price: 26, emoji: "🍜" },
+  { id: "braised-pork-rice", name: "卤肉饭", category: "中餐", price: 35, emoji: "🍚" },
+  { id: "sweet-sour-pork", name: "糖醋里脊", category: "中餐", price: 48, emoji: "🥢" },
+  { id: "kung-pao-chicken", name: "宫保鸡丁", category: "中餐", price: 42, emoji: "🍗" },
+  { id: "mala-tang", name: "麻辣烫", category: "川湘菜", price: 36, emoji: "🍢" },
+  { id: "mapo-tofu", name: "麻婆豆腐", category: "川湘菜", price: 32, emoji: "🌶️" },
+  { id: "boiled-fish", name: "水煮鱼", category: "川湘菜", price: 78, emoji: "🐟" },
+  { id: "spicy-chicken", name: "辣子鸡", category: "川湘菜", price: 58, emoji: "🍗" },
+  { id: "dry-pot-cauliflower", name: "干锅花菜", category: "川湘菜", price: 38, emoji: "🥦" },
+  { id: "stir-fried-pork", name: "小炒肉", category: "川湘菜", price: 46, emoji: "🥩" },
+  { id: "char-siu-rice", name: "叉烧饭", category: "粤菜", price: 36, emoji: "🍖" },
+  { id: "roast-duck-rice", name: "烧鸭饭", category: "粤菜", price: 38, emoji: "🦆" },
+  { id: "dim-sum", name: "广式点心拼盘", category: "粤菜", price: 58, emoji: "🥟" },
+  { id: "shrimp-dumpling", name: "虾饺", category: "粤菜", price: 32, emoji: "🦐" },
+  { id: "rice-noodle-roll", name: "肠粉", category: "粤菜", price: 26, emoji: "🍽️" },
   { id: "hotpot", name: "鸳鸯火锅", category: "火锅", price: 128, emoji: "🥘" },
+  { id: "beef-hotpot", name: "肥牛火锅", category: "火锅", price: 118, emoji: "🥩" },
+  { id: "mushroom-hotpot", name: "菌汤火锅", category: "火锅", price: 98, emoji: "🍄" },
+  { id: "fish-hotpot", name: "酸菜鱼火锅", category: "火锅", price: 108, emoji: "🐟" },
+  { id: "lamb-skewers", name: "羊肉串", category: "烧烤", price: 36, emoji: "🍖" },
+  { id: "grilled-chicken-wings", name: "烤鸡翅", category: "烧烤", price: 32, emoji: "🍗" },
+  { id: "grilled-oyster", name: "烤生蚝", category: "烧烤", price: 48, emoji: "🦪" },
+  { id: "grilled-corn", name: "烤玉米", category: "烧烤", price: 18, emoji: "🌽" },
   { id: "sushi", name: "寿司拼盘", category: "日料", price: 68, emoji: "🍣" },
   { id: "ramen", name: "豚骨拉面", category: "日料", price: 45, emoji: "🍜" },
+  { id: "curry-rice", name: "日式咖喱饭", category: "日料", price: 42, emoji: "🍛" },
+  { id: "tempura", name: "天妇罗", category: "日料", price: 52, emoji: "🍤" },
+  { id: "donburi", name: "牛肉丼饭", category: "日料", price: 39, emoji: "🍚" },
   { id: "bibimbap", name: "石锅拌饭", category: "韩餐", price: 42, emoji: "🍲" },
   { id: "fried-chicken", name: "韩式炸鸡", category: "韩餐", price: 58, emoji: "🍗" },
+  { id: "kimchi-soup", name: "泡菜汤", category: "韩餐", price: 38, emoji: "🍲" },
+  { id: "army-stew", name: "部队锅", category: "韩餐", price: 68, emoji: "🥘" },
+  { id: "korean-bbq", name: "韩式烤肉", category: "韩餐", price: 98, emoji: "🥩" },
   { id: "steak", name: "小牛排", category: "西餐", price: 98, emoji: "🥩" },
   { id: "pizza", name: "薄底披萨", category: "西餐", price: 72, emoji: "🍕" },
-  { id: "dumpling", name: "鲜肉锅贴", category: "小吃", price: 26, emoji: "🥟" },
-  { id: "mala-tang", name: "麻辣烫", category: "小吃", price: 36, emoji: "🍢" },
+  { id: "pasta", name: "奶油培根意面", category: "西餐", price: 48, emoji: "🍝" },
+  { id: "burger", name: "芝士牛肉汉堡", category: "西餐", price: 45, emoji: "🍔" },
   { id: "salad", name: "鸡胸沙拉", category: "西餐", price: 39, emoji: "🥗" },
-  { id: "congee", name: "皮蛋瘦肉粥", category: "中餐", price: 24, emoji: "🥣" },
+  { id: "fish-and-chips", name: "炸鱼薯条", category: "西餐", price: 46, emoji: "🍟" },
+  { id: "thai-curry", name: "泰式咖喱鸡", category: "东南亚", price: 46, emoji: "🍛" },
+  { id: "pho", name: "越南牛肉粉", category: "东南亚", price: 38, emoji: "🍜" },
+  { id: "pad-thai", name: "泰式炒河粉", category: "东南亚", price: 42, emoji: "🍝" },
+  { id: "hainan-chicken", name: "海南鸡饭", category: "东南亚", price: 39, emoji: "🍗" },
+  { id: "dumpling", name: "鲜肉锅贴", category: "小吃", price: 26, emoji: "🥟" },
+  { id: "xiaolongbao", name: "小笼包", category: "小吃", price: 28, emoji: "🥟" },
+  { id: "spring-rolls", name: "春卷", category: "小吃", price: 22, emoji: "🌯" },
+  { id: "scallion-pancake", name: "葱油饼", category: "小吃", price: 18, emoji: "🥞" },
+  { id: "takoyaki", name: "章鱼小丸子", category: "小吃", price: 26, emoji: "🐙" },
+  { id: "fries", name: "薯条", category: "小吃", price: 18, emoji: "🍟" },
+  { id: "soy-milk-youtiao", name: "豆浆油条", category: "早餐", price: 16, emoji: "🥛" },
+  { id: "egg-pancake", name: "鸡蛋灌饼", category: "早餐", price: 18, emoji: "🥞" },
+  { id: "wonton", name: "鲜肉馄饨", category: "早餐", price: 24, emoji: "🥣" },
+  { id: "sandwich", name: "火腿芝士三明治", category: "早餐", price: 26, emoji: "🥪" },
+  { id: "late-night-noodles", name: "夜宵拌面", category: "夜宵", price: 28, emoji: "🍜" },
+  { id: "fried-skewers", name: "炸串拼盘", category: "夜宵", price: 35, emoji: "🍢" },
+  { id: "snail-noodles", name: "螺蛳粉", category: "夜宵", price: 32, emoji: "🍜" },
+  { id: "spicy-crayfish", name: "小龙虾", category: "夜宵", price: 88, emoji: "🦞" },
   { id: "cake", name: "草莓蛋糕", category: "甜品", price: 36, emoji: "🍰" },
+  { id: "tiramisu", name: "提拉米苏", category: "甜品", price: 32, emoji: "🍰" },
+  { id: "mango-pancake", name: "芒果班戟", category: "甜品", price: 28, emoji: "🥭" },
+  { id: "ice-cream", name: "冰淇淋", category: "甜品", price: 22, emoji: "🍨" },
+  { id: "egg-tart", name: "蛋挞", category: "甜品", price: 16, emoji: "🥧" },
   { id: "milk-tea", name: "珍珠奶茶", category: "饮品", price: 18, emoji: "🧋" },
   { id: "lemon-tea", name: "柠檬茶", category: "饮品", price: 16, emoji: "🍋" },
+  { id: "americano", name: "美式咖啡", category: "饮品", price: 22, emoji: "☕" },
+  { id: "latte", name: "拿铁", category: "饮品", price: 26, emoji: "☕" },
+  { id: "orange-juice", name: "鲜榨橙汁", category: "饮品", price: 20, emoji: "🍊" },
+  { id: "coke", name: "可乐", category: "饮品", price: 10, emoji: "🥤" },
+  { id: "sparkling-water", name: "气泡水", category: "饮品", price: 14, emoji: "🫧" },
 ];
 
 const state = {
@@ -312,7 +369,7 @@ async function createRoom(event) {
       is_custom: false,
       created_by: nickname,
     }));
-    const dishesInsert = await client.from("dishes").insert(starterRows);
+    const dishesInsert = await client.from("dishes").upsert(starterRows, { onConflict: "room_id,id", ignoreDuplicates: true });
     if (dishesInsert.error) throw dishesInsert.error;
 
     await enterRoom(roomCode, nickname, { skipCapacityCheck: true, announceJoin: false });
