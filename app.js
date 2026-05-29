@@ -129,6 +129,7 @@ const els = {
   syncStatus: document.querySelector("#syncStatus"),
   ownerTools: document.querySelector("#ownerTools"),
   clearRoomMenu: document.querySelector("#clearRoomMenu"),
+  syncDefaultDishes: document.querySelector("#syncDefaultDishes"),
   roomNameInput: document.querySelector("#roomNameInput"),
   maxMembersInput: document.querySelector("#maxMembersInput"),
   memberList: document.querySelector("#memberList"),
@@ -513,6 +514,7 @@ function eventToMessage(event) {
     menu_removed: `${actor}移除了 ${dish}`,
     dish_added: `${actor}添加了 ${dish}`,
     dish_deleted: `${actor}删除了 ${dish}`,
+    default_dishes_synced: `${actor}补齐了默认菜单`,
     budget_updated: `${actor}更新了预算`,
     note_updated: `${actor}更新了备注`,
     random_decided: `${actor}随机选中了 ${dish}`,
@@ -941,6 +943,33 @@ async function clearMenu() {
   await loadRoomSnapshot();
 }
 
+async function syncDefaultDishes() {
+  if (!isCurrentOwner()) return toast("只有房主可以补齐默认菜单");
+  const client = getClient();
+  if (!client || !state.room) return;
+  const existingIds = new Set(state.dishes.map((dish) => dish.id));
+  const missingDishes = starterDishes.filter((dish) => !existingIds.has(dish.id));
+  if (!missingDishes.length) return toast("默认菜单已经是完整的");
+
+  const rows = missingDishes.map((dish) => ({
+    ...dish,
+    room_id: state.room.id,
+    status: "默认",
+    spice: "自定",
+    is_custom: false,
+    created_by: state.me?.nickname || "房主",
+  }));
+  const result = await client.from("dishes").upsert(rows, { onConflict: "room_id,id", ignoreDuplicates: true });
+  if (result.error) {
+    console.error(result.error);
+    toast("补齐失败，请稍后再试");
+    return;
+  }
+  await addEvent("default_dishes_synced", { count: missingDishes.length });
+  await loadRoomSnapshot();
+  toast(`已补齐 ${missingDishes.length} 道默认菜`);
+}
+
 function leaveRoom() {
   if (realtimeChannel && supabaseClient) supabaseClient.removeChannel(realtimeChannel);
   realtimeChannel = null;
@@ -1088,6 +1117,7 @@ function bindEvents() {
     closeDecision();
   });
   els.clearRoomMenu.addEventListener("click", clearMenu);
+  els.syncDefaultDishes.addEventListener("click", syncDefaultDishes);
 
   [els.addDishModal, els.optionModal, els.deleteDishModal].forEach((modal) => {
     modal.addEventListener("click", (event) => {
