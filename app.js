@@ -1,48 +1,47 @@
-const STORAGE_KEY = "couple-food-realtime-v1";
+const STORAGE_KEY = "couple-food-realtime-v2";
 const DEVICE_KEY = "couple-food-device-id";
 const ROOM_CODE_PATTERN = /^[A-Za-z0-9_-]+$/;
-
 const categories = ["全部", "中餐", "日料", "韩餐", "西餐", "火锅", "小吃", "甜品", "饮品"];
-const moods = ["都可以", "清淡", "重口", "省心", "约会感", "热乎", "甜一点"];
+const tasteOptions = ["清香", "微辣", "中辣", "爆辣", "麻辣"];
+const drinkOptions = ["热", "冷"];
+const drinkKeywords = ["饮品", "饮料", "drink", "drinks", "beverage", "tea", "coffee", "奶茶", "咖啡"];
 
 const starterDishes = [
-  { id: "beef-noodle", name: "牛肉面", category: "中餐", price: 32, status: "热乎", spice: "微辣", emoji: "🍜" },
-  { id: "claypot-rice", name: "煲仔饭", category: "中餐", price: 38, status: "省心", spice: "不辣", emoji: "🍚" },
-  { id: "hotpot", name: "鸳鸯火锅", category: "火锅", price: 128, status: "重口", spice: "可选", emoji: "🥘" },
-  { id: "sushi", name: "寿司拼盘", category: "日料", price: 68, status: "约会感", spice: "不辣", emoji: "🍣" },
-  { id: "ramen", name: "豚骨拉面", category: "日料", price: 45, status: "热乎", spice: "不辣", emoji: "🍜" },
-  { id: "bibimbap", name: "石锅拌饭", category: "韩餐", price: 42, status: "重口", spice: "中辣", emoji: "🍲" },
-  { id: "fried-chicken", name: "韩式炸鸡", category: "韩餐", price: 58, status: "省心", spice: "甜辣", emoji: "🍗" },
-  { id: "steak", name: "小牛排", category: "西餐", price: 98, status: "约会感", spice: "不辣", emoji: "🥩" },
-  { id: "pizza", name: "薄底披萨", category: "西餐", price: 72, status: "省心", spice: "不辣", emoji: "🍕" },
-  { id: "dumpling", name: "鲜肉锅贴", category: "小吃", price: 26, status: "省心", spice: "不辣", emoji: "🥟" },
-  { id: "mala-tang", name: "麻辣烫", category: "小吃", price: 36, status: "重口", spice: "自选", emoji: "🍢" },
-  { id: "salad", name: "鸡胸沙拉", category: "西餐", price: 39, status: "清淡", spice: "不辣", emoji: "🥗" },
-  { id: "congee", name: "皮蛋瘦肉粥", category: "中餐", price: 24, status: "清淡", spice: "不辣", emoji: "🥣" },
-  { id: "cake", name: "草莓蛋糕", category: "甜品", price: 36, status: "甜一点", spice: "不辣", emoji: "🍰" },
-  { id: "milk-tea", name: "珍珠奶茶", category: "饮品", price: 18, status: "甜一点", spice: "不辣", emoji: "🧋" },
-  { id: "lemon-tea", name: "柠檬茶", category: "饮品", price: 16, status: "清淡", spice: "不辣", emoji: "🍋" },
+  { id: "beef-noodle", name: "牛肉面", category: "中餐", price: 32, emoji: "🍜" },
+  { id: "claypot-rice", name: "煲仔饭", category: "中餐", price: 38, emoji: "🍚" },
+  { id: "hotpot", name: "鸳鸯火锅", category: "火锅", price: 128, emoji: "🥘" },
+  { id: "sushi", name: "寿司拼盘", category: "日料", price: 68, emoji: "🍣" },
+  { id: "ramen", name: "豚骨拉面", category: "日料", price: 45, emoji: "🍜" },
+  { id: "bibimbap", name: "石锅拌饭", category: "韩餐", price: 42, emoji: "🍲" },
+  { id: "fried-chicken", name: "韩式炸鸡", category: "韩餐", price: 58, emoji: "🍗" },
+  { id: "steak", name: "小牛排", category: "西餐", price: 98, emoji: "🥩" },
+  { id: "pizza", name: "薄底披萨", category: "西餐", price: 72, emoji: "🍕" },
+  { id: "dumpling", name: "鲜肉锅贴", category: "小吃", price: 26, emoji: "🥟" },
+  { id: "mala-tang", name: "麻辣烫", category: "小吃", price: 36, emoji: "🍢" },
+  { id: "salad", name: "鸡胸沙拉", category: "西餐", price: 39, emoji: "🥗" },
+  { id: "congee", name: "皮蛋瘦肉粥", category: "中餐", price: 24, emoji: "🥣" },
+  { id: "cake", name: "草莓蛋糕", category: "甜品", price: 36, emoji: "🍰" },
+  { id: "milk-tea", name: "珍珠奶茶", category: "饮品", price: 18, emoji: "🧋" },
+  { id: "lemon-tea", name: "柠檬茶", category: "饮品", price: 16, emoji: "🍋" },
 ];
 
-const emptyState = {
+const state = {
   activeTab: "pick",
   activeCategory: "全部",
-  activeMood: "都可以",
   room: null,
   me: null,
   members: [],
   dishes: [],
-  votes: [],
   menuItems: [],
   events: [],
   loading: false,
 };
 
-const state = { ...emptyState };
 const deviceId = getOrCreateDeviceId();
 let supabaseClient = null;
 let realtimeChannel = null;
 let selectedDecisionId = null;
+let pendingOptionDishId = null;
 let toastTimer = null;
 let noteTimer = null;
 let budgetTimer = null;
@@ -64,9 +63,9 @@ const els = {
   roomCodeLabel: document.querySelector("#roomCodeLabel"),
   roomTitle: document.querySelector("#roomTitle"),
   leaveRoomBtn: document.querySelector("#leaveRoomBtn"),
-  statMatch: document.querySelector("#statMatch"),
   statBudget: document.querySelector("#statBudget"),
   statCount: document.querySelector("#statCount"),
+  statMembers: document.querySelector("#statMembers"),
   memberCount: document.querySelector("#memberCount"),
   memberLimit: document.querySelector("#memberLimit"),
   meLabel: document.querySelector("#meLabel"),
@@ -76,22 +75,29 @@ const els = {
   roomNameInput: document.querySelector("#roomNameInput"),
   maxMembersInput: document.querySelector("#maxMembersInput"),
   memberList: document.querySelector("#memberList"),
-  moodChips: document.querySelector("#moodChips"),
-  shuffleMood: document.querySelector("#shuffleMood"),
   meName: document.querySelector("#meName"),
   budgetInput: document.querySelector("#budgetInput"),
   categoryTabs: document.querySelector("#categoryTabs"),
   randomResultBar: document.querySelector("#randomResultBar"),
   dishGrid: document.querySelector("#dishGrid"),
   decideBtn: document.querySelector("#decideBtn"),
-  voteBoard: document.querySelector("#voteBoard"),
+  openAddDish: document.querySelector("#openAddDish"),
+  addDishModal: document.querySelector("#addDishModal"),
   addDishForm: document.querySelector("#addDishForm"),
+  closeAddDish: document.querySelector("#closeAddDish"),
+  cancelAddDish: document.querySelector("#cancelAddDish"),
   newDishName: document.querySelector("#newDishName"),
   newDishCategory: document.querySelector("#newDishCategory"),
+  categorySuggestions: document.querySelector("#categorySuggestions"),
   newDishPrice: document.querySelector("#newDishPrice"),
+  optionModal: document.querySelector("#optionModal"),
+  optionTitle: document.querySelector("#optionTitle"),
+  optionDishName: document.querySelector("#optionDishName"),
+  optionGrid: document.querySelector("#optionGrid"),
+  closeOption: document.querySelector("#closeOption"),
   orderTotal: document.querySelector("#orderTotal"),
   budgetDiff: document.querySelector("#budgetDiff"),
-  matchScore: document.querySelector("#matchScore"),
+  orderCount: document.querySelector("#orderCount"),
   orderList: document.querySelector("#orderList"),
   orderNote: document.querySelector("#orderNote"),
   historyList: document.querySelector("#historyList"),
@@ -143,19 +149,20 @@ function loadLocalSession() {
 }
 
 function saveLocalSession(extra = {}) {
-  const payload = {
-    device_id: deviceId,
-    room_code: state.room?.room_code || extra.room_code || "",
-    nickname: state.me?.nickname || extra.nickname || "",
-    cached_room: state.room,
-    cached_members: state.members,
-    cached_dishes: state.dishes,
-    cached_votes: state.votes,
-    cached_menu_items: state.menuItems,
-    cached_events: state.events.slice(0, 30),
-    ...extra,
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      device_id: deviceId,
+      room_code: state.room?.room_code || extra.room_code || "",
+      nickname: state.me?.nickname || extra.nickname || "",
+      cached_room: state.room,
+      cached_members: state.members,
+      cached_dishes: state.dishes,
+      cached_menu_items: state.menuItems,
+      cached_events: state.events.slice(0, 30),
+      ...extra,
+    }),
+  );
 }
 
 function restoreCachedRoom() {
@@ -164,10 +171,9 @@ function restoreCachedRoom() {
   state.room = saved.cached_room;
   state.members = saved.cached_members || [];
   state.dishes = saved.cached_dishes || [];
-  state.votes = saved.cached_votes || [];
   state.menuItems = saved.cached_menu_items || [];
   state.events = saved.cached_events || [];
-  state.me = state.members.find((member) => member.device_id === deviceId) || null;
+  state.me = findMemberByNickname(saved.nickname) || state.members.find((member) => member.device_id === deviceId) || null;
   showRoom();
   setSyncStatus("当前可能不是最新数据", true);
   render();
@@ -203,7 +209,7 @@ function showRoom() {
 
 function setLoading(loading) {
   state.loading = loading;
-  document.querySelectorAll("button, input, select, textarea").forEach((node) => {
+  document.querySelectorAll("button, input, textarea").forEach((node) => {
     node.disabled = loading;
   });
 }
@@ -213,20 +219,22 @@ function setSyncStatus(text, offline = false) {
   els.syncStatus.classList.toggle("offline", offline);
 }
 
+function findMemberByNickname(nickname) {
+  return state.members.find((member) => member.nickname === nickname);
+}
+
+function isCurrentOwner() {
+  return state.room?.owner_id === state.me?.nickname || state.room?.owner_id === deviceId;
+}
+
 async function createRoom(event) {
   event.preventDefault();
   const client = getClient();
-  if (!client) {
-    toast("请先填写 Supabase 配置");
-    return;
-  }
+  if (!client) return toast("请先填写 Supabase 配置");
 
   const roomCode = normalizeRoomCode(els.createRoomCode.value);
   const codeError = validateRoomCode(roomCode);
-  if (codeError) {
-    toast(codeError);
-    return;
-  }
+  if (codeError) return toast(codeError);
 
   const nickname = normalizeNickname(els.createNickname.value);
   const maxMembers = clampMaxMembers(els.createMaxMembers.value);
@@ -234,18 +242,15 @@ async function createRoom(event) {
 
   try {
     const existing = await client.from("rooms").select("id").eq("room_code", roomCode).maybeSingle();
-    if (existing.data) {
-      toast("房间码已存在，请换一个");
-      return;
-    }
     if (existing.error) throw existing.error;
+    if (existing.data) return toast("房间码已存在，请换一个");
 
     const roomInsert = await client
       .from("rooms")
       .insert({
         room_code: roomCode,
         display_name: "今晚吃什么",
-        owner_id: deviceId,
+        owner_id: nickname,
         max_members: maxMembers,
         budget: 120,
         selected_category: "全部",
@@ -254,11 +259,7 @@ async function createRoom(event) {
       })
       .select()
       .single();
-    if (roomInsert.error) {
-      if (roomInsert.error.code === "23505") toast("房间码已存在，请换一个");
-      else throw roomInsert.error;
-      return;
-    }
+    if (roomInsert.error) throw roomInsert.error;
 
     const room = roomInsert.data;
     const memberInsert = await client.from("room_members").insert({
@@ -270,16 +271,12 @@ async function createRoom(event) {
     if (memberInsert.error) throw memberInsert.error;
 
     const starterRows = starterDishes.map((dish) => ({
-      id: dish.id,
+      ...dish,
       room_id: room.id,
-      name: dish.name,
-      category: dish.category,
-      price: dish.price,
-      status: dish.status,
-      spice: dish.spice,
-      emoji: dish.emoji,
+      status: "默认",
+      spice: "自定",
       is_custom: false,
-      created_by: deviceId,
+      created_by: nickname,
     }));
     const dishesInsert = await client.from("dishes").insert(starterRows);
     if (dishesInsert.error) throw dishesInsert.error;
@@ -287,7 +284,7 @@ async function createRoom(event) {
     await enterRoom(roomCode, nickname, { skipCapacityCheck: true, announceJoin: false });
   } catch (error) {
     console.error(error);
-    toast("创建房间失败，请检查网络和 Supabase 表结构");
+    toast(error.code === "23505" ? "房间码或昵称已存在" : "创建房间失败，请检查 Supabase 表结构");
   } finally {
     setLoading(false);
   }
@@ -297,100 +294,82 @@ async function joinRoom(event) {
   event.preventDefault();
   const roomCode = normalizeRoomCode(els.joinRoomCode.value);
   const codeError = validateRoomCode(roomCode);
-  if (codeError) {
-    toast(codeError);
-    return;
-  }
+  if (codeError) return toast(codeError);
   await enterRoom(roomCode, normalizeNickname(els.joinNickname.value));
 }
 
 async function enterRoom(roomCode, nickname, options = {}) {
   const client = getClient();
-  if (!client) {
-    toast("请先填写 Supabase 配置");
-    return;
-  }
+  if (!client) return toast("请先填写 Supabase 配置");
 
   setLoading(true);
   try {
     const roomResult = await client.from("rooms").select("*").eq("room_code", roomCode).maybeSingle();
     if (roomResult.error) throw roomResult.error;
-    if (!roomResult.data) {
-      toast("房间不存在");
-      return;
-    }
+    if (!roomResult.data) return toast("房间不存在");
 
     const room = roomResult.data;
     const membersResult = await client.from("room_members").select("*").eq("room_id", room.id);
     if (membersResult.error) throw membersResult.error;
     const members = membersResult.data || [];
-    const existingMember = members.find((member) => member.device_id === deviceId);
+    const existingByNickname = members.find((member) => member.nickname === nickname);
 
-    if (!existingMember && !options.skipCapacityCheck && members.length >= room.max_members) {
-      toast("房间人数已满");
-      return;
-    }
-
-    if (existingMember) {
+    if (existingByNickname) {
       const update = await client
         .from("room_members")
-        .update({ nickname, last_seen_at: new Date().toISOString() })
+        .update({ device_id: deviceId, last_seen_at: new Date().toISOString() })
         .eq("room_id", room.id)
-        .eq("device_id", deviceId);
+        .eq("nickname", nickname);
       if (update.error) throw update.error;
     } else {
+      if (!options.skipCapacityCheck && members.length >= room.max_members) return toast("房间人数已满");
       const insert = await client.from("room_members").insert({
         room_id: room.id,
         device_id: deviceId,
         nickname,
-        role: room.owner_id === deviceId ? "owner" : "member",
+        role: room.owner_id === nickname ? "owner" : "member",
       });
       if (insert.error) throw insert.error;
-      if (options.announceJoin !== false) {
-        await addEvent("member_joined", { nickname }, room.id, nickname);
-      }
+      if (options.announceJoin !== false) await addEvent("member_joined", { nickname }, room.id, nickname);
     }
 
-    await loadRoomSnapshot(room.id);
+    await loadRoomSnapshot(room.id, nickname);
     showRoom();
     saveLocalSession({ room_code: roomCode, nickname });
     subscribeToRoom(room.id);
     setSyncStatus("实时同步中");
   } catch (error) {
     console.error(error);
-    toast("加入房间失败，请稍后再试");
+    toast(error.code === "23505" ? "这个昵称已经在房间里" : "加入房间失败，请稍后再试");
   } finally {
     setLoading(false);
   }
 }
 
-async function loadRoomSnapshot(roomId = state.room?.id) {
+async function loadRoomSnapshot(roomId = state.room?.id, preferredNickname = state.me?.nickname) {
   if (!roomId) return;
   const client = getClient();
   if (!client) return;
 
-  const [roomResult, membersResult, dishesResult, votesResult, menuResult, eventsResult] = await Promise.all([
+  const [roomResult, membersResult, dishesResult, menuResult, eventsResult] = await Promise.all([
     client.from("rooms").select("*").eq("id", roomId).single(),
     client.from("room_members").select("*").eq("room_id", roomId).order("joined_at", { ascending: true }),
     client.from("dishes").select("*").eq("room_id", roomId).order("created_at", { ascending: true }),
-    client.from("votes").select("*").eq("room_id", roomId),
     client.from("menu_items").select("*").eq("room_id", roomId).order("created_at", { ascending: true }),
     client.from("room_events").select("*").eq("room_id", roomId).order("created_at", { ascending: false }).limit(30),
   ]);
 
-  const error = [roomResult, membersResult, dishesResult, votesResult, menuResult, eventsResult].find((item) => item.error)?.error;
+  const error = [roomResult, membersResult, dishesResult, menuResult, eventsResult].find((item) => item.error)?.error;
   if (error) throw error;
 
   state.room = roomResult.data;
   state.members = membersResult.data || [];
   state.dishes = dishesResult.data || [];
-  state.votes = votesResult.data || [];
   state.menuItems = menuResult.data || [];
   state.events = eventsResult.data || [];
   state.activeCategory = state.room.selected_category || "全部";
-  state.activeMood = state.room.selected_status || "都可以";
-  state.me = state.members.find((member) => member.device_id === deviceId) || null;
-  saveLocalSession();
+  state.me = state.members.find((member) => member.nickname === preferredNickname) || state.members.find((member) => member.device_id === deviceId) || null;
+  saveLocalSession({ nickname: state.me?.nickname || preferredNickname || "" });
   render();
 }
 
@@ -408,9 +387,6 @@ function subscribeToRoom(roomId) {
       loadRoomSnapshot(roomId).catch(handleRealtimeError);
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "dishes", filter: `room_id=eq.${roomId}` }, () => {
-      loadRoomSnapshot(roomId).catch(handleRealtimeError);
-    })
-    .on("postgres_changes", { event: "*", schema: "public", table: "votes", filter: `room_id=eq.${roomId}` }, () => {
       loadRoomSnapshot(roomId).catch(handleRealtimeError);
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "menu_items", filter: `room_id=eq.${roomId}` }, () => {
@@ -432,7 +408,7 @@ function handleRealtimeError(error) {
 }
 
 function handleRoomEvent(event) {
-  if (!event || event.actor_id === deviceId) return;
+  if (!event || event.actor_name === state.me?.nickname) return;
   toast(eventToMessage(event));
 }
 
@@ -440,13 +416,14 @@ function eventToMessage(event) {
   const actor = event.actor_name || "有人";
   const payload = event.payload || {};
   const dish = payload.dish_name || payload.name || "这道菜";
+  const option = payload.option_label ? `（${payload.option_label}）` : "";
   const map = {
-    menu_added: `${actor}加入了 ${dish} 到今晚菜单`,
+    menu_added: `${actor}加入了 ${dish}${option}`,
     menu_removed: `${actor}移除了 ${dish}`,
-    vote_changed: `${actor}给 ${dish} 投了一票`,
+    dish_added: `${actor}添加了 ${dish}`,
+    dish_deleted: `${actor}删除了 ${dish}`,
     budget_updated: `${actor}更新了预算`,
     note_updated: `${actor}更新了备注`,
-    dish_added: `${actor}添加了 ${dish}`,
     random_decided: `${actor}随机选中了 ${dish}`,
     member_joined: `${actor}加入了房间`,
     menu_cleared: `${actor}清空了今晚菜单`,
@@ -459,7 +436,7 @@ async function addEvent(eventType, payload = {}, roomId = state.room?.id, actorN
   if (!client || !roomId) return;
   const result = await client.from("room_events").insert({
     room_id: roomId,
-    actor_id: deviceId,
+    actor_id: actorName || deviceId,
     actor_name: actorName || "我",
     event_type: eventType,
     payload,
@@ -475,55 +452,27 @@ function byId(id) {
   return allDishes().find((dish) => dish.id === id);
 }
 
-function getMemberName(memberId) {
-  return state.members.find((member) => member.device_id === memberId)?.nickname || "成员";
-}
-
 function formatMoney(value) {
   return `¥${Math.round(Number(value) || 0)}`;
-}
-
-function dishScore(dish) {
-  const voteCount = state.votes.filter((vote) => vote.dish_id === dish.id && vote.vote_value > 0).length;
-  let score = 1 + voteCount * 2;
-  if (dish.status === state.activeMood) score += 1;
-  if (state.menuItems.some((item) => item.dish_id === dish.id)) score -= 1;
-  return score;
 }
 
 function getFilteredDishes() {
   return allDishes()
     .filter((dish) => state.activeCategory === "全部" || dish.category === state.activeCategory)
-    .filter((dish) => state.activeMood === "都可以" || dish.status === state.activeMood)
-    .sort((a, b) => dishScore(b) - dishScore(a) || Number(a.price) - Number(b.price));
+    .sort((a, b) => Number(a.price) - Number(b.price) || a.name.localeCompare(b.name, "zh-CN"));
 }
 
-function getMatchScore() {
-  const activeMembers = state.members.map((member) => member.device_id);
-  if (!activeMembers.length) return 0;
-  const votedDishIds = [...new Set(state.votes.filter((vote) => vote.vote_value > 0).map((vote) => vote.dish_id))];
-  if (!votedDishIds.length) return 0;
-  const fullMatches = votedDishIds.filter((dishId) => {
-    const voters = new Set(state.votes.filter((vote) => vote.dish_id === dishId && vote.vote_value > 0).map((vote) => vote.member_device_id));
-    return activeMembers.every((memberId) => voters.has(memberId));
-  });
-  return Math.round((fullMatches.length / votedDishIds.length) * 100);
+function getCategoryList() {
+  return [...new Set([...categories, ...state.dishes.map((dish) => dish.category).filter(Boolean)])];
 }
 
-function renderMoodChips() {
-  els.moodChips.innerHTML = moods
-    .map(
-      (mood) => `
-        <button class="chip ${state.activeMood === mood ? "active" : ""}" type="button" data-mood="${escapeHtml(mood)}">
-          ${escapeHtml(mood)}
-        </button>
-      `,
-    )
-    .join("");
+function isDrinkCategory(category = "") {
+  const text = category.toLowerCase();
+  return drinkKeywords.some((keyword) => text.includes(keyword.toLowerCase()));
 }
 
 function renderCategoryTabs() {
-  els.categoryTabs.innerHTML = categories
+  els.categoryTabs.innerHTML = getCategoryList()
     .map(
       (category) => `
         <button class="mini-pill ${state.activeCategory === category ? "active" : ""}" type="button" data-category="${escapeHtml(category)}">
@@ -531,6 +480,10 @@ function renderCategoryTabs() {
         </button>
       `,
     )
+    .join("");
+  els.categorySuggestions.innerHTML = getCategoryList()
+    .filter((category) => category !== "全部")
+    .map((category) => `<option value="${escapeHtml(category)}"></option>`)
     .join("");
 }
 
@@ -551,9 +504,7 @@ function renderRandomResult() {
 }
 
 function renderDishCard(dish) {
-  const voted = state.votes.some((vote) => vote.dish_id === dish.id && vote.member_device_id === deviceId && vote.vote_value > 0);
   const inMenu = state.menuItems.some((item) => item.dish_id === dish.id);
-  const voteCount = state.votes.filter((vote) => vote.dish_id === dish.id && vote.vote_value > 0).length;
   return `
     <article class="dish-card">
       <div class="dish-visual" aria-hidden="true">${dish.emoji || "🍽️"}</div>
@@ -564,17 +515,12 @@ function renderDishCard(dish) {
         </div>
         <div class="dish-meta">
           <span>${escapeHtml(dish.category)}</span>
-          <span>${escapeHtml(dish.status || "省心")}</span>
-          <span>${escapeHtml(dish.spice || "自定")}</span>
-          <span>${voteCount} 票</span>
         </div>
         <div class="dish-actions">
-          <button class="vote-button ${voted ? "active" : ""}" type="button" data-vote="${dish.id}">
-            ${voted ? "已投票" : "投一票"}
+          <button class="add-button" type="button" data-add="${dish.id}">
+            ${inMenu ? "再加一份" : "加入菜单"}
           </button>
-          <button class="add-button" type="button" data-add="${dish.id}" aria-label="${inMenu ? "已加入" : "加入菜单"}">
-            ${inMenu ? "✓" : "+"}
-          </button>
+          <button class="delete-dish-button" type="button" data-delete-dish="${dish.id}" aria-label="删除菜品">删</button>
         </div>
       </div>
     </article>
@@ -582,7 +528,7 @@ function renderDishCard(dish) {
 }
 
 function renderMembers() {
-  const isOwner = state.room?.owner_id === deviceId;
+  const owner = isCurrentOwner();
   els.memberList.innerHTML = state.members.length
     ? state.members
         .map(
@@ -590,11 +536,11 @@ function renderMembers() {
             <div class="member-item">
               <div>
                 <strong>${escapeHtml(member.nickname)}</strong>
-                <div class="member-meta">${member.device_id === state.room?.owner_id ? "房主" : "成员"}${member.device_id === deviceId ? " · 我" : ""}</div>
+                <div class="member-meta">${member.nickname === state.room?.owner_id || member.role === "owner" ? "房主" : "成员"}${member.nickname === state.me?.nickname ? " · 我" : ""}</div>
               </div>
               ${
-                isOwner && member.device_id !== deviceId
-                  ? `<button class="remove-button" type="button" data-remove-member="${member.device_id}" aria-label="移除成员">×</button>`
+                owner && member.nickname !== state.me?.nickname
+                  ? `<button class="remove-button" type="button" data-remove-member="${escapeHtml(member.nickname)}" aria-label="移除成员">×</button>`
                   : ""
               }
             </div>
@@ -604,54 +550,34 @@ function renderMembers() {
     : `<div class="empty-state">还没有成员</div>`;
 }
 
-function renderVotes() {
-  els.voteBoard.innerHTML = state.members.length
-    ? state.members
-        .map((member) => {
-          const ids = state.votes.filter((vote) => vote.member_device_id === member.device_id && vote.vote_value > 0).map((vote) => vote.dish_id);
-          return `
-            <div class="member-vote-card">
-              <div>
-                <strong>${escapeHtml(member.nickname)}</strong>
-                <div class="mini-list">${renderVoteList(ids)}</div>
-              </div>
-            </div>
-          `;
-        })
-        .join("")
-    : `<div class="empty-state">还没有投票</div>`;
-}
-
-function renderVoteList(ids) {
-  const items = ids.map(byId).filter(Boolean);
-  if (!items.length) return `<div class="member-meta">还没投票</div>`;
-  return items.map((dish) => `<div class="member-meta">${dish.emoji || "🍽️"} ${escapeHtml(dish.name)}</div>`).join("");
-}
-
 function renderOrder() {
   const items = state.menuItems.map((item) => ({ menuItem: item, dish: byId(item.dish_id) })).filter((item) => item.dish);
   const total = items.reduce((sum, item) => sum + Number(item.dish.price || 0), 0);
   const diff = Number(state.room?.budget || 0) - total;
-  const match = getMatchScore();
 
   els.orderTotal.textContent = formatMoney(total);
   els.budgetDiff.textContent = diff >= 0 ? `+${formatMoney(diff)}` : `-${formatMoney(Math.abs(diff))}`;
-  els.matchScore.textContent = `${match}%`;
-  els.statMatch.textContent = `默契值 ${match}%`;
+  els.orderCount.textContent = items.length;
   els.statBudget.textContent = `预算 ${formatMoney(state.room?.budget || 0)}`;
   els.statCount.textContent = `${items.length} 道菜`;
+  els.statMembers.textContent = `${state.members.length} 人`;
 
   els.orderList.innerHTML = items.length
     ? items
-        .map(
-          ({ menuItem, dish }) => `
+        .map(({ menuItem, dish }) => {
+          const option = menuItem.option_label || menuItem.selected_taste || menuItem.drink_temperature || "";
+          return `
             <div class="order-item">
-              <span>${dish.emoji || "🍽️"} ${escapeHtml(dish.name)}</span>
+              <span>
+                ${dish.emoji || "🍽️"} ${escapeHtml(dish.name)}
+                ${option ? `<small>（${escapeHtml(option)}）</small>` : ""}
+                <small>由 ${escapeHtml(menuItem.added_by || "成员")} 添加</small>
+              </span>
               <strong>${formatMoney(dish.price)}</strong>
               <button class="remove-button" type="button" data-remove="${menuItem.id}" aria-label="移除">×</button>
             </div>
-          `,
-        )
+          `;
+        })
         .join("")
     : `<div class="empty-state">菜单还是空的</div>`;
 }
@@ -670,13 +596,6 @@ function renderHistory() {
         )
         .join("")
     : `<div class="empty-state">还没有历史记录</div>`;
-}
-
-function renderFormOptions() {
-  els.newDishCategory.innerHTML = categories
-    .filter((category) => category !== "全部")
-    .map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
-    .join("");
 }
 
 function renderTabs() {
@@ -700,8 +619,7 @@ function renderInputs() {
   els.orderNote.value = state.room?.note || "";
   els.roomNameInput.value = state.room?.display_name || "今晚吃什么";
   els.maxMembersInput.value = state.room?.max_members || 2;
-  const isOwner = state.room?.owner_id === deviceId;
-  els.ownerTools.hidden = !isOwner;
+  els.ownerTools.hidden = !isCurrentOwner();
   isRenderingInputs = false;
 }
 
@@ -711,10 +629,8 @@ function render() {
   renderInputs();
   renderMembers();
   renderRandomResult();
-  renderMoodChips();
   renderCategoryTabs();
   renderDishGrid();
-  renderVotes();
   renderOrder();
   renderHistory();
 }
@@ -739,57 +655,50 @@ async function updateRoom(patch, eventType, payload) {
   if (eventType) await addEvent(eventType, payload);
 }
 
-async function toggleVote(id) {
-  const client = getClient();
-  const dish = byId(id);
-  if (!client || !state.room || !dish) return;
-  const existing = state.votes.find((vote) => vote.dish_id === id && vote.member_device_id === deviceId);
-
-  if (existing) {
-    const nextValue = existing.vote_value > 0 ? 0 : 1;
-    const result = await client
-      .from("votes")
-      .update({ vote_value: nextValue, updated_at: new Date().toISOString() })
-      .eq("id", existing.id);
-    if (result.error) {
-      toast("投票失败，请稍后再试");
-      return;
-    }
-    if (nextValue > 0) await addEvent("vote_changed", { dish_id: id, dish_name: dish.name });
-  } else {
-    const result = await client.from("votes").insert({
-      room_id: state.room.id,
-      dish_id: id,
-      member_device_id: deviceId,
-      vote_value: 1,
-    });
-    if (result.error) {
-      toast("投票失败，请稍后再试");
-      return;
-    }
-    await addEvent("vote_changed", { dish_id: id, dish_name: dish.name });
-  }
-  await loadRoomSnapshot();
+function openOptionModal(dishId) {
+  const dish = byId(dishId);
+  if (!dish) return;
+  pendingOptionDishId = dishId;
+  const options = isDrinkCategory(dish.category) ? drinkOptions : tasteOptions;
+  els.optionTitle.textContent = isDrinkCategory(dish.category) ? "选择冷热" : "选择口味";
+  els.optionDishName.textContent = dish.name;
+  els.optionGrid.innerHTML = options.map((option) => `<button class="option-button" type="button" data-option="${option}">${option}</button>`).join("");
+  els.optionModal.classList.add("open");
+  els.optionModal.setAttribute("aria-hidden", "false");
 }
 
-async function addToOrder(id) {
+function closeOptionModal() {
+  pendingOptionDishId = null;
+  els.optionModal.classList.remove("open");
+  els.optionModal.setAttribute("aria-hidden", "true");
+}
+
+async function addToOrderWithOption(optionLabel) {
   const client = getClient();
-  const dish = byId(id);
+  const dish = byId(pendingOptionDishId);
   if (!client || !state.room || !dish) return;
-  if (state.menuItems.some((item) => item.dish_id === id)) {
-    toast("菜单里已经有它");
-    return;
-  }
+  const isDrink = isDrinkCategory(dish.category);
   const result = await client.from("menu_items").insert({
     room_id: state.room.id,
-    dish_id: id,
-    added_by: deviceId,
+    dish_id: dish.id,
+    added_by: state.me?.nickname || "成员",
+    option_label: optionLabel,
+    selected_taste: isDrink ? null : optionLabel,
+    drink_temperature: isDrink ? optionLabel : null,
   });
   if (result.error) {
-    toast("加入菜单失败，请稍后再试");
+    toast("加入菜单失败，请先执行数据库迁移 SQL");
+    console.error(result.error);
     return;
   }
-  await addEvent("menu_added", { dish_id: id, dish_name: dish.name });
+  await addEvent("menu_added", {
+    dish_id: dish.id,
+    dish_name: dish.name,
+    option_label: optionLabel,
+    selected_taste: isDrink ? null : optionLabel,
+    drink_temperature: isDrink ? optionLabel : null,
+  });
+  closeOptionModal();
   await loadRoomSnapshot();
 }
 
@@ -799,23 +708,33 @@ async function removeFromOrder(menuItemId) {
   const menuItem = state.menuItems.find((item) => item.id === menuItemId);
   const dish = menuItem ? byId(menuItem.dish_id) : null;
   const result = await client.from("menu_items").delete().eq("id", menuItemId).eq("room_id", state.room.id);
+  if (result.error) return toast("移除失败，请稍后再试");
+  if (dish) await addEvent("menu_removed", { dish_id: dish.id, dish_name: dish.name });
+  await loadRoomSnapshot();
+}
+
+async function deleteDish(dishId) {
+  const client = getClient();
+  const dish = byId(dishId);
+  if (!client || !state.room || !dish) return;
+  const inMenu = state.menuItems.some((item) => item.dish_id === dishId);
+  const message = inMenu ? "该菜品已在今晚菜单中，删除后会从今晚菜单移除。确定删除这个菜品吗？" : "确定删除这个菜品吗？";
+  if (!window.confirm(message)) return;
+
+  const result = await client.from("dishes").delete().eq("room_id", state.room.id).eq("id", dishId);
   if (result.error) {
-    toast("移除失败，请稍后再试");
+    console.error(result.error);
+    toast("删除菜品失败，请确认已执行数据库迁移 SQL");
     return;
   }
-  if (dish) await addEvent("menu_removed", { dish_id: dish.id, dish_name: dish.name });
+  await addEvent("dish_deleted", { dish_id: dish.id, dish_name: dish.name });
   await loadRoomSnapshot();
 }
 
 async function chooseDecision() {
   const candidates = getFilteredDishes();
-  if (!candidates.length) {
-    toast("先加几个想吃的");
-    return;
-  }
-
-  const weighted = candidates.flatMap((dish) => Array.from({ length: Math.max(1, dishScore(dish)) }, () => dish));
-  const dish = weighted[Math.floor(Math.random() * weighted.length)];
+  if (!candidates.length) return toast("先加几个想吃的");
+  const dish = candidates[Math.floor(Math.random() * candidates.length)];
   selectedDecisionId = dish.id;
   showDecision(dish);
   await updateRoom({ random_result: { dish_id: dish.id, dish_name: dish.name, decided_at: new Date().toISOString() } }, "random_decided", {
@@ -828,7 +747,7 @@ function showDecision(dish) {
   els.decisionDish.innerHTML = `
     <div class="emoji" aria-hidden="true">${dish.emoji || "🍽️"}</div>
     <strong>${escapeHtml(dish.name)}</strong>
-    <span>${escapeHtml(dish.category)} · ${escapeHtml(dish.status || "省心")} · ${formatMoney(dish.price)}</span>
+    <span>${escapeHtml(dish.category)} · ${formatMoney(dish.price)}</span>
   `;
   els.decisionModal.classList.add("open");
   els.decisionModal.setAttribute("aria-hidden", "false");
@@ -839,53 +758,63 @@ function closeDecision() {
   els.decisionModal.setAttribute("aria-hidden", "true");
 }
 
+function openAddDishModal() {
+  els.addDishModal.classList.add("open");
+  els.addDishModal.setAttribute("aria-hidden", "false");
+  els.newDishName.focus();
+}
+
+function closeAddDishModal() {
+  els.addDishModal.classList.remove("open");
+  els.addDishModal.setAttribute("aria-hidden", "true");
+}
+
 async function addCustomDish(event) {
   event.preventDefault();
   const client = getClient();
   if (!client || !state.room) return;
   const name = els.newDishName.value.trim();
   if (!name) return;
+  const category = els.newDishCategory.value.trim() || "自定义";
   const dish = {
     id: `custom-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`,
     room_id: state.room.id,
     name,
-    category: els.newDishCategory.value,
+    category,
     price: Math.max(0, Number(els.newDishPrice.value) || 0),
-    status: state.activeMood === "都可以" ? "省心" : state.activeMood,
+    status: "默认",
     spice: "自定",
-    emoji: "🍽️",
+    emoji: isDrinkCategory(category) ? "🥤" : "🍽️",
     is_custom: true,
-    created_by: deviceId,
+    created_by: state.me?.nickname || "成员",
   };
   const result = await client.from("dishes").insert(dish);
   if (result.error) {
+    console.error(result.error);
     toast("添加菜品失败，请稍后再试");
     return;
   }
   els.newDishName.value = "";
+  els.newDishCategory.value = "";
+  els.newDishPrice.value = "";
+  closeAddDishModal();
   await updateRoom({ selected_category: dish.category }, "dish_added", { dish_id: dish.id, dish_name: dish.name });
   await loadRoomSnapshot();
 }
 
-async function removeMember(memberDeviceId) {
-  if (state.room?.owner_id !== deviceId) return;
+async function removeMember(nickname) {
+  if (!isCurrentOwner()) return;
   const client = getClient();
-  const result = await client.from("room_members").delete().eq("room_id", state.room.id).eq("device_id", memberDeviceId);
-  if (result.error) {
-    toast("移除成员失败");
-    return;
-  }
+  const result = await client.from("room_members").delete().eq("room_id", state.room.id).eq("nickname", nickname);
+  if (result.error) return toast("移除成员失败");
   await loadRoomSnapshot();
 }
 
 async function clearMenu() {
-  if (state.room?.owner_id !== deviceId) return;
+  if (!isCurrentOwner()) return;
   const client = getClient();
   const result = await client.from("menu_items").delete().eq("room_id", state.room.id);
-  if (result.error) {
-    toast("清空菜单失败");
-    return;
-  }
+  if (result.error) return toast("清空菜单失败");
   await addEvent("menu_cleared", {});
   await loadRoomSnapshot();
 }
@@ -917,28 +846,21 @@ function escapeHtml(value) {
   });
 }
 
-function debounce(fn, wait, timerName) {
-  window.clearTimeout(window[timerName]);
-  window[timerName] = window.setTimeout(fn, wait);
-}
-
 function bindEvents() {
   els.createRoomForm.addEventListener("submit", createRoom);
   els.joinRoomForm.addEventListener("submit", joinRoom);
   els.leaveRoomBtn.addEventListener("click", leaveRoom);
+  els.openAddDish.addEventListener("click", openAddDishModal);
+  els.closeAddDish.addEventListener("click", closeAddDishModal);
+  els.cancelAddDish.addEventListener("click", closeAddDishModal);
+  els.addDishForm.addEventListener("submit", addCustomDish);
+  els.closeOption.addEventListener("click", closeOptionModal);
 
   document.querySelector(".tabs").addEventListener("click", (event) => {
     const button = event.target.closest("[data-tab]");
     if (!button) return;
     state.activeTab = button.dataset.tab;
     renderTabs();
-  });
-
-  els.moodChips.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-mood]");
-    if (!button) return;
-    state.activeMood = button.dataset.mood;
-    updateRoom({ selected_status: state.activeMood });
   });
 
   els.categoryTabs.addEventListener("click", (event) => {
@@ -949,10 +871,15 @@ function bindEvents() {
   });
 
   els.dishGrid.addEventListener("click", (event) => {
-    const voteButton = event.target.closest("[data-vote]");
     const addButton = event.target.closest("[data-add]");
-    if (voteButton) toggleVote(voteButton.dataset.vote);
-    if (addButton) addToOrder(addButton.dataset.add);
+    const deleteButton = event.target.closest("[data-delete-dish]");
+    if (addButton) openOptionModal(addButton.dataset.add);
+    if (deleteButton) deleteDish(deleteButton.dataset.deleteDish);
+  });
+
+  els.optionGrid.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-option]");
+    if (button) addToOrderWithOption(button.dataset.option);
   });
 
   els.orderList.addEventListener("click", (event) => {
@@ -967,17 +894,19 @@ function bindEvents() {
 
   els.meName.addEventListener("input", () => {
     if (isRenderingInputs) return;
-    const nickname = normalizeNickname(els.meName.value);
+    const nextNickname = normalizeNickname(els.meName.value);
     window.clearTimeout(nicknameTimer);
     nicknameTimer = window.setTimeout(async () => {
       const client = getClient();
-      if (!client || !state.room) return;
+      if (!client || !state.room || !state.me) return;
       const result = await client
         .from("room_members")
-        .update({ nickname, last_seen_at: new Date().toISOString() })
+        .update({ nickname: nextNickname, last_seen_at: new Date().toISOString() })
         .eq("room_id", state.room.id)
-        .eq("device_id", deviceId);
-      if (!result.error) await loadRoomSnapshot();
+        .eq("nickname", state.me.nickname);
+      if (result.error) return toast("昵称已存在或更新失败");
+      if (state.room.owner_id === state.me.nickname) await updateRoom({ owner_id: nextNickname });
+      await loadRoomSnapshot(state.room.id, nextNickname);
     }, 450);
   });
 
@@ -998,7 +927,7 @@ function bindEvents() {
   });
 
   els.roomNameInput.addEventListener("input", () => {
-    if (isRenderingInputs || state.room?.owner_id !== deviceId) return;
+    if (isRenderingInputs || !isCurrentOwner()) return;
     window.clearTimeout(roomSettingsTimer);
     roomSettingsTimer = window.setTimeout(() => {
       updateRoom({ display_name: els.roomNameInput.value.trim() || "今晚吃什么" });
@@ -1006,18 +935,12 @@ function bindEvents() {
   });
 
   els.maxMembersInput.addEventListener("input", () => {
-    if (isRenderingInputs || state.room?.owner_id !== deviceId) return;
+    if (isRenderingInputs || !isCurrentOwner()) return;
     window.clearTimeout(roomSettingsTimer);
     roomSettingsTimer = window.setTimeout(() => {
       const nextMax = Math.max(clampMaxMembers(els.maxMembersInput.value), state.members.length);
       updateRoom({ max_members: nextMax });
     }, 500);
-  });
-
-  els.shuffleMood.addEventListener("click", () => {
-    const nextMood = moods[Math.floor(Math.random() * moods.length)];
-    state.activeMood = nextMood;
-    updateRoom({ selected_status: nextMood });
   });
 
   els.decideBtn.addEventListener("click", chooseDecision);
@@ -1027,12 +950,19 @@ function bindEvents() {
     if (event.target === els.decisionModal) closeDecision();
   });
   els.addDecision.addEventListener("click", () => {
-    if (selectedDecisionId) addToOrder(selectedDecisionId);
+    if (selectedDecisionId) openOptionModal(selectedDecisionId);
     closeDecision();
   });
-
   els.clearRoomMenu.addEventListener("click", clearMenu);
-  els.addDishForm.addEventListener("submit", addCustomDish);
+
+  [els.addDishModal, els.optionModal].forEach((modal) => {
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) {
+        modal.classList.remove("open");
+        modal.setAttribute("aria-hidden", "true");
+      }
+    });
+  });
 
   window.addEventListener("online", () => {
     if (state.room) loadRoomSnapshot().then(() => setSyncStatus("实时同步中")).catch(handleRealtimeError);
@@ -1041,9 +971,7 @@ function bindEvents() {
 }
 
 async function boot() {
-  renderFormOptions();
   bindEvents();
-
   const saved = loadLocalSession();
   els.createNickname.value = saved.nickname || "";
   els.joinNickname.value = saved.nickname || "";

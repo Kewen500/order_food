@@ -23,7 +23,8 @@ create table if not exists public.room_members (
   role text not null default 'member' check (role in ('owner', 'member')),
   joined_at timestamptz not null default now(),
   last_seen_at timestamptz not null default now(),
-  unique (room_id, device_id)
+  unique (room_id, device_id),
+  unique (room_id, nickname)
 );
 
 create table if not exists public.dishes (
@@ -32,7 +33,7 @@ create table if not exists public.dishes (
   name text not null,
   category text not null,
   price numeric not null default 0,
-  status text not null default '省心',
+  status text not null default '默认',
   spice text not null default '自定',
   emoji text not null default '🍽️',
   is_custom boolean not null default false,
@@ -58,8 +59,10 @@ create table if not exists public.menu_items (
   room_id uuid not null references public.rooms(id) on delete cascade,
   dish_id text not null,
   added_by text not null,
+  option_label text,
+  selected_taste text,
+  drink_temperature text,
   created_at timestamptz not null default now(),
-  unique (room_id, dish_id),
   foreign key (room_id, dish_id) references public.dishes(room_id, id) on delete cascade
 );
 
@@ -83,7 +86,6 @@ alter table public.room_events enable row level security;
 drop policy if exists "anon can read rooms" on public.rooms;
 drop policy if exists "anon can insert rooms" on public.rooms;
 drop policy if exists "anon can update rooms" on public.rooms;
-drop policy if exists "anon can delete rooms" on public.rooms;
 create policy "anon can read rooms" on public.rooms for select to anon using (true);
 create policy "anon can insert rooms" on public.rooms for insert to anon with check (true);
 create policy "anon can update rooms" on public.rooms for update to anon using (true) with check (true);
