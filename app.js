@@ -97,6 +97,7 @@ const state = {
 const deviceId = getOrCreateDeviceId();
 let supabaseClient = null;
 let realtimeChannel = null;
+let realtimeRoomId = null;
 let selectedDecisionId = null;
 let pendingOptionDishId = null;
 let toastTimer = null;
@@ -428,7 +429,7 @@ async function enterRoom(roomCode, nickname, options = {}) {
     await loadRoomSnapshot(room.id, nickname);
     showRoom();
     saveLocalSession({ room_code: roomCode, nickname });
-    subscribeToRoom(room.id);
+    await subscribeToRoom(room.id);
     setSyncStatus("实时同步中");
   } catch (error) {
     console.error(error);
@@ -465,11 +466,50 @@ async function loadRoomSnapshot(roomId = state.room?.id, preferredNickname = sta
   render();
 }
 
-function subscribeToRoom(roomId) {
+function logActiveChannels(label) {
+  const client = getClient();
+  const count = client?.getChannels ? client.getChannels().length : realtimeChannel ? 1 : 0;
+  console.log(`[Realtime] ${label}. active channels: ${count}`, {
+    currentRoomId: realtimeRoomId,
+    targetRoomId: state.room?.id || null,
+  });
+}
+
+async function removeRealtimeChannel(reason = "cleanup") {
+  if (!realtimeChannel || !supabaseClient) {
+    realtimeChannel = null;
+    realtimeRoomId = null;
+    logActiveChannels(`${reason}: no active channel`);
+    return;
+  }
+
+  const oldRoomId = realtimeRoomId;
+  const oldChannel = realtimeChannel;
+  realtimeChannel = null;
+  realtimeRoomId = null;
+
+  try {
+    await supabaseClient.removeChannel(oldChannel);
+  } catch (error) {
+    console.warn("[Realtime] removeChannel failed", error);
+  }
+
+  logActiveChannels(`${reason}: removed room ${oldRoomId}`);
+}
+
+async function subscribeToRoom(roomId) {
   const client = getClient();
   if (!client) return;
-  if (realtimeChannel) client.removeChannel(realtimeChannel);
+  if (realtimeChannel && realtimeRoomId === roomId) {
+    logActiveChannels(`reuse room ${roomId}`);
+    return;
+  }
 
+  if (realtimeChannel) {
+    await removeRealtimeChannel(`switch room ${realtimeRoomId} -> ${roomId}`);
+  }
+
+  realtimeRoomId = roomId;
   realtimeChannel = client
     .channel(`room-${roomId}`)
     .on("postgres_changes", { event: "*", schema: "public", table: "rooms", filter: `id=eq.${roomId}` }, () => {
@@ -491,7 +531,12 @@ function subscribeToRoom(roomId) {
     .subscribe((status) => {
       if (status === "SUBSCRIBED") setSyncStatus("实时同步中");
       if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setSyncStatus("当前可能不是最新数据", true);
+      if (status === "SUBSCRIBED" || status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        logActiveChannels(`room ${roomId} ${status}`);
+      }
     });
+
+  logActiveChannels(`created room ${roomId}`);
 }
 
 function handleRealtimeError(error) {
@@ -970,9 +1015,8 @@ async function syncDefaultDishes() {
   toast(`已补齐 ${missingDishes.length} 道默认菜`);
 }
 
-function leaveRoom() {
-  if (realtimeChannel && supabaseClient) supabaseClient.removeChannel(realtimeChannel);
-  realtimeChannel = null;
+async function leaveRoom() {
+  await removeRealtimeChannel("leave room");
   clearRoomSession();
   state.room = null;
   state.me = null;
