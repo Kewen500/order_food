@@ -430,6 +430,11 @@ h2 {
   font-size: 0.82rem;
 }
 
+.leave-action {
+  color: #fff;
+  background: rgba(217, 77, 67, 0.92);
+}
+
 .icon-button {
   width: 42px;
   min-width: 42px;

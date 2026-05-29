@@ -169,6 +169,23 @@ function saveLocalSession(extra = {}) {
   );
 }
 
+function clearRoomSession() {
+  const saved = loadLocalSession();
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      device_id: deviceId,
+      nickname: saved.nickname || state.me?.nickname || "",
+      room_code: "",
+      cached_room: null,
+      cached_members: [],
+      cached_dishes: [],
+      cached_menu_items: [],
+      cached_events: [],
+    }),
+  );
+}
+
 function restoreCachedRoom() {
   const saved = loadLocalSession();
   if (!saved.cached_room) return;
@@ -870,9 +887,16 @@ async function clearMenu() {
 function leaveRoom() {
   if (realtimeChannel && supabaseClient) supabaseClient.removeChannel(realtimeChannel);
   realtimeChannel = null;
+  clearRoomSession();
   state.room = null;
   state.me = null;
+  state.members = [];
+  state.dishes = [];
+  state.menuItems = [];
+  state.events = [];
+  els.joinRoomCode.value = "";
   showLobby();
+  toast("已退出房间");
 }
 
 function toast(message) {
