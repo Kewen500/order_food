@@ -1,0 +1,19 @@
+{
+  "name": "今晚吃什么",
+  "short_name": "点菜",
+  "description": "多人共享实时同步的点菜、投票和今晚菜单 PWA。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fff7ed",
+  "theme_color": "#f66f5e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./assets/date-table.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

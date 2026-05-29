@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f66f5e" />
+    <title>今晚吃什么</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="apple-touch-icon" href="./assets/date-table.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="lobby-view" id="lobbyView">
+        <header class="top-scene lobby-hero" aria-label="多人点菜应用">
+          <img src="./assets/date-table.png" alt="" class="scene-image" />
+          <div class="scene-shade"></div>
+          <div class="scene-content">
+            <p class="kicker">Realtime dinner room</p>
+            <h1>今晚吃什么</h1>
+            <p class="hero-copy">创建一个房间，和朋友或对象一起实时投票、点菜、备注和随机决定。</p>
+          </div>
+        </header>
+
+        <div class="setup-grid">
+          <section class="setup-card">
+            <div class="section-title">
+              <h2>创建房间</h2>
+            </div>
+            <form id="createRoomForm" class="room-form">
+              <label class="field">
+                <span>房间码</span>
+                <input id="createRoomCode" autocomplete="off" maxlength="24" placeholder="例如 dinner-520" />
+              </label>
+              <label class="field">
+                <span>我的昵称</span>
+                <input id="createNickname" autocomplete="off" maxlength="12" placeholder="例如 小鱼" />
+              </label>
+              <label class="field">
+                <span>人数上限</span>
+                <input id="createMaxMembers" type="number" min="2" max="6" step="1" value="2" />
+              </label>
+              <button class="primary-action submit-action" type="submit">创建并进入</button>
+            </form>
+          </section>
+
+          <section class="setup-card">
+            <div class="section-title">
+              <h2>加入房间</h2>
+            </div>
+            <form id="joinRoomForm" class="room-form">
+              <label class="field">
+                <span>房间码</span>
+                <input id="joinRoomCode" autocomplete="off" maxlength="24" placeholder="输入同一个房间码" />
+              </label>
+              <label class="field">
+                <span>我的昵称</span>
+                <input id="joinNickname" autocomplete="off" maxlength="12" placeholder="例如 阿布" />
+              </label>
+              <button class="ghost-action submit-action" type="submit">加入房间</button>
+            </form>
+          </section>
+        </div>
+
+        <p class="config-warning" id="configWarning" hidden>
+          还没有配置 Supabase URL 和 anon public key。请先填写 config.js，页面才能创建或加入云端房间。
+        </p>
+      </section>
+
+      <section class="room-view" id="roomView" hidden>
+        <header class="top-scene" aria-label="房间点菜应用">
+          <img src="./assets/date-table.png" alt="" class="scene-image" />
+          <div class="scene-shade"></div>
+          <div class="scene-content">
+            <div class="room-topline">
+              <p class="kicker">房间 <span id="roomCodeLabel">--</span></p>
+              <button class="ghost-action small-action" id="leaveRoomBtn" type="button">返回</button>
+            </div>
+            <h1 id="roomTitle">今晚吃什么</h1>
+            <div class="quick-stats" aria-live="polite">
+              <span id="statMatch">默契值 0%</span>
+              <span id="statBudget">预算 ¥120</span>
+              <span id="statCount">0 道菜</span>
+            </div>
+          </div>
+        </header>
+
+        <section class="control-band room-status" aria-label="房间状态">
+          <div>
+            <span class="eyebrow">我是谁</span>
+            <strong id="meLabel">--</strong>
+          </div>
+          <div>
+            <span class="eyebrow">成员</span>
+            <strong><span id="memberCount">0</span>/<span id="memberLimit">2</span></strong>
+          </div>
+          <div class="sync-pill" id="syncStatus">正在连接</div>
+        </section>
+
+        <section class="control-band owner-tools" id="ownerTools" hidden aria-label="房主设置">
+          <div class="section-title">
+            <h2>房主设置</h2>
+            <button class="ghost-action" id="clearRoomMenu" type="button">清空今晚菜单</button>
+          </div>
+          <div class="owner-grid">
+            <label class="field">
+              <span>显示名称</span>
+              <input id="roomNameInput" maxlength="18" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>人数上限</span>
+              <input id="maxMembersInput" type="number" min="2" max="6" step="1" />
+            </label>
+          </div>
+        </section>
+
+        <section class="control-band" aria-label="成员列表">
+          <div class="section-title">
+            <h2>成员</h2>
+          </div>
+          <div class="member-list" id="memberList"></div>
+        </section>
+
+        <section class="control-band" aria-label="今晚状态">
+          <div class="section-title">
+            <h2>今晚状态</h2>
+            <button class="icon-button" id="shuffleMood" type="button" aria-label="随机状态" title="随机状态">↻</button>
+          </div>
+          <div class="chip-row" id="moodChips"></div>
+        </section>
+
+        <section class="control-band compact" aria-label="昵称和预算">
+          <label class="field">
+            <span>我的昵称</span>
+            <input id="meName" maxlength="12" autocomplete="off" />
+          </label>
+          <label class="field budget-field">
+            <span>预算</span>
+            <input id="budgetInput" type="number" min="0" step="10" inputmode="numeric" />
+          </label>
+        </section>
+
+        <nav class="tabs" aria-label="主导航">
+          <button class="tab-button active" type="button" data-tab="pick">点菜</button>
+          <button class="tab-button" type="button" data-tab="vote">投票</button>
+          <button class="tab-button" type="button" data-tab="menu">菜单</button>
+        </nav>
+
+        <section class="tab-panel active" id="pickPanel" data-panel="pick">
+          <div class="section-title">
+            <h2>想吃清单</h2>
+            <button class="primary-action" id="decideBtn" type="button">决定今晚</button>
+          </div>
+          <div class="random-result" id="randomResultBar" hidden></div>
+          <div class="category-scroll" id="categoryTabs" aria-label="菜品分类"></div>
+          <div class="dish-grid" id="dishGrid"></div>
+        </section>
+
+        <section class="tab-panel" id="votePanel" data-panel="vote">
+          <div class="section-title">
+            <h2>大家的票</h2>
+          </div>
+          <div id="voteBoard" class="member-vote-board"></div>
+          <div class="section-title add-title">
+            <h2>新增菜品</h2>
+          </div>
+          <form class="add-form" id="addDishForm">
+            <label class="field wide">
+              <span>菜名</span>
+              <input id="newDishName" required maxlength="18" autocomplete="off" placeholder="比如 牛肉饭" />
+            </label>
+            <label class="field">
+              <span>分类</span>
+              <select id="newDishCategory"></select>
+            </label>
+            <label class="field">
+              <span>价格</span>
+              <input id="newDishPrice" type="number" min="0" step="1" inputmode="numeric" value="28" />
+            </label>
+            <button class="primary-action submit-action" type="submit">加入清单</button>
+          </form>
+        </section>
+
+        <section class="tab-panel" id="menuPanel" data-panel="menu">
+          <div class="section-title">
+            <h2>今晚菜单</h2>
+          </div>
+          <div class="order-summary">
+            <div>
+              <span>合计</span>
+              <strong id="orderTotal">¥0</strong>
+            </div>
+            <div>
+              <span>预算差</span>
+              <strong id="budgetDiff">¥0</strong>
+            </div>
+            <div>
+              <span>默契</span>
+              <strong id="matchScore">0%</strong>
+            </div>
+          </div>
+          <div id="orderList" class="order-list"></div>
+          <label class="note-field">
+            <span>备注</span>
+            <textarea id="orderNote" rows="4" maxlength="160" placeholder="少辣、不要香菜、饭后买奶茶"></textarea>
+          </label>
+          <div class="history-block">
+            <div class="section-title">
+              <h2>历史记录</h2>
+            </div>
+            <div id="historyList" class="history-list"></div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="decision-modal" id="decisionModal" aria-hidden="true">
+      <div class="decision-card" role="dialog" aria-modal="true" aria-labelledby="decisionTitle">
+        <button class="icon-button close-modal" id="closeDecision" type="button" aria-label="关闭" title="关闭">×</button>
+        <p class="kicker">Tonight's pick</p>
+        <h2 id="decisionTitle">今晚吃它</h2>
+        <div id="decisionDish" class="decision-dish"></div>
+        <div class="modal-actions">
+          <button class="primary-action" id="addDecision" type="button">加入菜单</button>
+          <button class="ghost-action" id="againDecision" type="button">再摇一次</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./config.js"></script>
+    <script src="./app.js" defer></script>
+  </body>
+</html>
