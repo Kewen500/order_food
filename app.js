@@ -98,6 +98,8 @@ const deviceId = getOrCreateDeviceId();
 let supabaseClient = null;
 let realtimeChannel = null;
 let realtimeRoomId = null;
+let snapshotRequest = null;
+let snapshotRoomId = null;
 let selectedDecisionId = null;
 let pendingOptionDishId = null;
 let toastTimer = null;
@@ -441,34 +443,46 @@ async function enterRoom(roomCode, nickname, options = {}) {
 
 async function loadRoomSnapshot(roomId = state.room?.id, preferredNickname = state.me?.nickname) {
   if (!roomId) return;
+  if (snapshotRequest && snapshotRoomId === roomId) return snapshotRequest;
+
   const client = getClient();
   if (!client) return;
 
-  const [roomResult, membersResult, dishesResult, menuResult, eventsResult] = await Promise.all([
-    client.from("rooms").select("*").eq("id", roomId).single(),
-    client.from("room_members").select("*").eq("room_id", roomId).order("joined_at", { ascending: true }),
-    client.from("dishes").select("*").eq("room_id", roomId).order("created_at", { ascending: true }),
-    client.from("menu_items").select("*").eq("room_id", roomId).order("created_at", { ascending: true }),
-    client.from("room_events").select("*").eq("room_id", roomId).order("created_at", { ascending: false }).limit(30),
-  ]);
+  snapshotRoomId = roomId;
+  snapshotRequest = (async () => {
+    console.log(`[Supabase] loading room snapshot ${roomId}`);
+    const [roomResult, membersResult, dishesResult, menuResult, eventsResult] = await Promise.all([
+      client.from("rooms").select("*").eq("id", roomId).single(),
+      client.from("room_members").select("*").eq("room_id", roomId).order("joined_at", { ascending: true }),
+      client.from("dishes").select("*").eq("room_id", roomId).order("created_at", { ascending: true }),
+      client.from("menu_items").select("*").eq("room_id", roomId).order("created_at", { ascending: true }),
+      client.from("room_events").select("*").eq("room_id", roomId).order("created_at", { ascending: false }).limit(30),
+    ]);
 
-  const error = [roomResult, membersResult, dishesResult, menuResult, eventsResult].find((item) => item.error)?.error;
-  if (error) throw error;
+    const error = [roomResult, membersResult, dishesResult, menuResult, eventsResult].find((item) => item.error)?.error;
+    if (error) throw error;
 
-  state.room = roomResult.data;
-  state.members = membersResult.data || [];
-  state.dishes = dishesResult.data || [];
-  state.menuItems = menuResult.data || [];
-  state.events = eventsResult.data || [];
-  state.activeCategory = state.room.selected_category || "全部";
-  state.me = state.members.find((member) => member.nickname === preferredNickname) || state.members.find((member) => member.device_id === deviceId) || null;
-  saveLocalSession({ nickname: state.me?.nickname || preferredNickname || "" });
-  render();
+    state.room = roomResult.data;
+    state.members = membersResult.data || [];
+    state.dishes = dishesResult.data || [];
+    state.menuItems = menuResult.data || [];
+    state.events = eventsResult.data || [];
+    state.activeCategory = state.room.selected_category || "全部";
+    state.me = state.members.find((member) => member.nickname === preferredNickname) || state.members.find((member) => member.device_id === deviceId) || null;
+    saveLocalSession({ nickname: state.me?.nickname || preferredNickname || "" });
+    render();
+  })();
+
+  try {
+    return await snapshotRequest;
+  } finally {
+    snapshotRequest = null;
+    snapshotRoomId = null;
+  }
 }
 
 function logActiveChannels(label) {
-  const client = getClient();
-  const count = client?.getChannels ? client.getChannels().length : realtimeChannel ? 1 : 0;
+  const count = supabaseClient?.getChannels ? supabaseClient.getChannels().length : realtimeChannel ? 1 : 0;
   console.log(`[Realtime] ${label}. active channels: ${count}`, {
     currentRoomId: realtimeRoomId,
     targetRoomId: state.room?.id || null,
@@ -495,6 +509,17 @@ async function removeRealtimeChannel(reason = "cleanup") {
   }
 
   logActiveChannels(`${reason}: removed room ${oldRoomId}`);
+}
+
+async function pauseRealtime(reason) {
+  await removeRealtimeChannel(reason);
+}
+
+async function resumeRealtime(reason) {
+  if (!state.room?.id || !hasEnteredRoom()) return;
+  console.log(`[Realtime] ${reason}: resume requested`);
+  await subscribeToRoom(state.room.id);
+  await loadRoomSnapshot(state.room.id).catch(handleRealtimeError);
 }
 
 async function subscribeToRoom(roomId) {
@@ -1173,9 +1198,25 @@ function bindEvents() {
   });
 
   window.addEventListener("online", () => {
-    if (state.room) loadRoomSnapshot().then(() => setSyncStatus("实时同步中")).catch(handleRealtimeError);
+    resumeRealtime("online").then(() => setSyncStatus("实时同步中")).catch(handleRealtimeError);
   });
   window.addEventListener("offline", () => setSyncStatus("当前可能不是最新数据", true));
+  window.addEventListener("pagehide", () => {
+    pauseRealtime("pagehide");
+  });
+  window.addEventListener("pageshow", () => {
+    resumeRealtime("pageshow").catch(handleRealtimeError);
+  });
+  window.addEventListener("beforeunload", () => {
+    pauseRealtime("beforeunload");
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      pauseRealtime("visibility hidden");
+      return;
+    }
+    resumeRealtime("visibility visible").catch(handleRealtimeError);
+  });
 }
 
 async function boot() {
