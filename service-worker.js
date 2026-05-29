@@ -1,4 +1,4 @@
-const CACHE_NAME = "couple-food-realtime-v2";
+const CACHE_NAME = "couple-food-realtime-v3";
 const ASSETS = [
   "./",
   "./index.html",

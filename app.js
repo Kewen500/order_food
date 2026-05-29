@@ -200,6 +200,8 @@ function clampMaxMembers(value) {
 function showLobby() {
   els.lobbyView.hidden = false;
   els.roomView.hidden = true;
+  closeAddDishModal();
+  closeOptionModal();
 }
 
 function showRoom() {
@@ -225,6 +227,16 @@ function findMemberByNickname(nickname) {
 
 function isCurrentOwner() {
   return state.room?.owner_id === state.me?.nickname || state.room?.owner_id === deviceId;
+}
+
+function hasEnteredRoom() {
+  return Boolean(state.room?.id && state.me?.nickname && !els.roomView.hidden);
+}
+
+function requireEnteredRoom() {
+  if (hasEnteredRoom()) return true;
+  toast("请先创建或加入房间");
+  return false;
 }
 
 async function createRoom(event) {
@@ -656,6 +668,7 @@ async function updateRoom(patch, eventType, payload) {
 }
 
 function openOptionModal(dishId) {
+  if (!requireEnteredRoom()) return;
   const dish = byId(dishId);
   if (!dish) return;
   pendingOptionDishId = dishId;
@@ -759,6 +772,7 @@ function closeDecision() {
 }
 
 function openAddDishModal() {
+  if (!requireEnteredRoom()) return;
   els.addDishModal.classList.add("open");
   els.addDishModal.setAttribute("aria-hidden", "false");
   els.newDishName.focus();
@@ -771,6 +785,7 @@ function closeAddDishModal() {
 
 async function addCustomDish(event) {
   event.preventDefault();
+  if (!requireEnteredRoom()) return;
   const client = getClient();
   if (!client || !state.room) return;
   const name = els.newDishName.value.trim();
