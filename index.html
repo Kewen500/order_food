@@ -145,7 +145,10 @@
           <div class="random-result" id="randomResultBar" hidden></div>
           <div class="category-scroll" id="categoryTabs" aria-label="菜品分类"></div>
           <div class="dish-grid" id="dishGrid"></div>
-          <button class="fab-add" id="openAddDish" type="button" aria-label="新增菜品">+</button>
+          <div class="pick-bottom-actions" aria-label="菜品管理">
+            <button class="pick-action add" id="openAddDish" type="button">新增菜品</button>
+            <button class="pick-action delete" id="openDeleteDish" type="button">删除菜品</button>
+          </div>
         </section>
 
         <section class="tab-panel" id="menuPanel" data-panel="menu">
@@ -217,6 +220,16 @@
         </div>
         <p class="option-dish" id="optionDishName"></p>
         <div class="option-grid" id="optionGrid"></div>
+      </div>
+    </div>
+
+    <div class="sheet-modal" id="deleteDishModal" aria-hidden="true">
+      <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="deleteDishTitle">
+        <div class="section-title">
+          <h2 id="deleteDishTitle">删除菜品</h2>
+          <button class="icon-button" id="closeDeleteDish" type="button" aria-label="关闭">×</button>
+        </div>
+        <div class="delete-dish-list" id="deleteDishList"></div>
       </div>
     </div>
 

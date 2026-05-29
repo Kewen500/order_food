@@ -82,6 +82,7 @@ const els = {
   dishGrid: document.querySelector("#dishGrid"),
   decideBtn: document.querySelector("#decideBtn"),
   openAddDish: document.querySelector("#openAddDish"),
+  openDeleteDish: document.querySelector("#openDeleteDish"),
   addDishModal: document.querySelector("#addDishModal"),
   addDishForm: document.querySelector("#addDishForm"),
   closeAddDish: document.querySelector("#closeAddDish"),
@@ -95,6 +96,9 @@ const els = {
   optionDishName: document.querySelector("#optionDishName"),
   optionGrid: document.querySelector("#optionGrid"),
   closeOption: document.querySelector("#closeOption"),
+  deleteDishModal: document.querySelector("#deleteDishModal"),
+  closeDeleteDish: document.querySelector("#closeDeleteDish"),
+  deleteDishList: document.querySelector("#deleteDishList"),
   orderTotal: document.querySelector("#orderTotal"),
   budgetDiff: document.querySelector("#budgetDiff"),
   orderCount: document.querySelector("#orderCount"),
@@ -202,6 +206,7 @@ function showLobby() {
   els.roomView.hidden = true;
   closeAddDishModal();
   closeOptionModal();
+  closeDeleteDishModal();
 }
 
 function showRoom() {
@@ -532,7 +537,6 @@ function renderDishCard(dish) {
           <button class="add-button" type="button" data-add="${dish.id}">
             ${inMenu ? "再加一份" : "加入菜单"}
           </button>
-          <button class="delete-dish-button" type="button" data-delete-dish="${dish.id}" aria-label="删除菜品">删</button>
         </div>
       </div>
     </article>
@@ -741,6 +745,7 @@ async function deleteDish(dishId) {
     return;
   }
   await addEvent("dish_deleted", { dish_id: dish.id, dish_name: dish.name });
+  closeDeleteDishModal();
   await loadRoomSnapshot();
 }
 
@@ -781,6 +786,34 @@ function openAddDishModal() {
 function closeAddDishModal() {
   els.addDishModal.classList.remove("open");
   els.addDishModal.setAttribute("aria-hidden", "true");
+}
+
+function openDeleteDishModal() {
+  if (!requireEnteredRoom()) return;
+  renderDeleteDishList();
+  els.deleteDishModal.classList.add("open");
+  els.deleteDishModal.setAttribute("aria-hidden", "false");
+}
+
+function closeDeleteDishModal() {
+  els.deleteDishModal.classList.remove("open");
+  els.deleteDishModal.setAttribute("aria-hidden", "true");
+}
+
+function renderDeleteDishList() {
+  const dishes = getFilteredDishes();
+  els.deleteDishList.innerHTML = dishes.length
+    ? dishes
+        .map(
+          (dish) => `
+            <button class="delete-dish-row" type="button" data-delete-dish="${dish.id}">
+              <span>${dish.emoji || "🍽️"} ${escapeHtml(dish.name)}</span>
+              <strong>${formatMoney(dish.price)}</strong>
+            </button>
+          `,
+        )
+        .join("")
+    : `<div class="empty-state">当前分类没有菜品</div>`;
 }
 
 async function addCustomDish(event) {
@@ -866,10 +899,12 @@ function bindEvents() {
   els.joinRoomForm.addEventListener("submit", joinRoom);
   els.leaveRoomBtn.addEventListener("click", leaveRoom);
   els.openAddDish.addEventListener("click", openAddDishModal);
+  els.openDeleteDish.addEventListener("click", openDeleteDishModal);
   els.closeAddDish.addEventListener("click", closeAddDishModal);
   els.cancelAddDish.addEventListener("click", closeAddDishModal);
   els.addDishForm.addEventListener("submit", addCustomDish);
   els.closeOption.addEventListener("click", closeOptionModal);
+  els.closeDeleteDish.addEventListener("click", closeDeleteDishModal);
 
   document.querySelector(".tabs").addEventListener("click", (event) => {
     const button = event.target.closest("[data-tab]");
@@ -887,9 +922,12 @@ function bindEvents() {
 
   els.dishGrid.addEventListener("click", (event) => {
     const addButton = event.target.closest("[data-add]");
-    const deleteButton = event.target.closest("[data-delete-dish]");
     if (addButton) openOptionModal(addButton.dataset.add);
-    if (deleteButton) deleteDish(deleteButton.dataset.deleteDish);
+  });
+
+  els.deleteDishList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-delete-dish]");
+    if (button) deleteDish(button.dataset.deleteDish);
   });
 
   els.optionGrid.addEventListener("click", (event) => {
@@ -970,7 +1008,7 @@ function bindEvents() {
   });
   els.clearRoomMenu.addEventListener("click", clearMenu);
 
-  [els.addDishModal, els.optionModal].forEach((modal) => {
+  [els.addDishModal, els.optionModal, els.deleteDishModal].forEach((modal) => {
     modal.addEventListener("click", (event) => {
       if (event.target === modal) {
         modal.classList.remove("open");

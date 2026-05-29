@@ -343,6 +343,11 @@ h2 {
   display: block;
 }
 
+#pickPanel {
+  position: relative;
+  padding-bottom: 84px;
+}
+
 .chip-row,
 .category-scroll {
   display: flex;
@@ -504,13 +509,12 @@ h2 {
 
 .dish-actions {
   display: grid;
-  grid-template-columns: 1fr 54px;
+  grid-template-columns: 1fr;
   gap: 6px;
 }
 
 .add-button,
-.remove-button,
-.delete-dish-button {
+.remove-button {
   min-height: 38px;
   border: 0;
   border-radius: 13px;
@@ -522,11 +526,6 @@ h2 {
   color: #fff;
   background: var(--ink);
   font-size: 0.9rem;
-}
-
-.delete-dish-button {
-  color: #fff;
-  background: var(--coral-deep);
 }
 
 .mini-list,
@@ -663,21 +662,36 @@ h2 {
   opacity: 1;
 }
 
-.fab-add {
-  position: fixed;
-  right: max(18px, env(safe-area-inset-right));
-  bottom: max(82px, calc(env(safe-area-inset-bottom) + 24px));
-  z-index: 5;
-  width: 58px;
-  height: 58px;
+.pick-bottom-actions {
+  position: sticky;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 4;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 253, 248, 0.94);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 14px 34px rgba(52, 39, 32, 0.12);
+}
+
+.pick-action {
+  min-height: 50px;
   border: 0;
-  border-radius: 50%;
+  border-radius: 16px;
   color: #fff;
-  background: var(--coral);
-  box-shadow: 0 14px 34px rgba(246, 111, 94, 0.36);
-  font-size: 2rem;
-  font-weight: 850;
-  line-height: 1;
+  font-weight: 900;
+}
+
+.pick-action.add {
+  background: var(--ink);
+}
+
+.pick-action.delete {
+  background: var(--coral-deep);
 }
 
 .sheet-modal {
@@ -723,6 +737,39 @@ h2 {
   color: #fff;
   background: var(--ink);
   font-weight: 900;
+}
+
+.delete-dish-list {
+  display: grid;
+  gap: 8px;
+  max-height: min(58vh, 520px);
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.delete-dish-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 52px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: #fff;
+  text-align: left;
+  font-weight: 900;
+}
+
+.delete-dish-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.delete-dish-row strong {
+  flex: 0 0 auto;
+  color: var(--coral-deep);
 }
 
 .decision-modal {
